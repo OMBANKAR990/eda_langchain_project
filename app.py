@@ -3,7 +3,7 @@ import pandas as pd
 from flask import Flask, request, jsonify, render_template_string
 from werkzeug.utils import secure_filename
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 app = Flask(__name__)
 
@@ -29,7 +29,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EDA & LangChain AI Assistant</title>
+    <title>EDA & Gemini LangChain Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -41,7 +41,7 @@ HTML_TEMPLATE = """
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-chart-line text-indigo-500 text-2xl"></i>
                 <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                    LangChain EDA Assistant
+                    LangChain Gemini EDA Assistant
                 </h1>
             </div>
             <span class="text-xs font-semibold px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
@@ -78,10 +78,10 @@ HTML_TEMPLATE = """
             <!-- API Key Input -->
             <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-6 shadow-xl">
                 <h2 class="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-amber-400"></i> OpenAI Key
+                    <i class="fa-solid fa-key text-amber-400"></i> Gemini API Key
                 </h2>
-                <p class="text-xs text-slate-400 mb-3">Optional if set in Render Environment Variables.</p>
-                <input type="password" id="apiKey" placeholder="sk-..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                <p class="text-xs text-slate-400 mb-3">Optional if set as GOOGLE_API_KEY in Render Environment Variables.</p>
+                <input type="password" id="apiKey" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
             </div>
         </div>
 
@@ -110,7 +110,7 @@ HTML_TEMPLATE = """
             <!-- Chat Interface -->
             <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-6 shadow-xl flex flex-col h-[500px]">
                 <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-robot text-cyan-400"></i> LangChain Data Assistant
+                    <i class="fa-solid fa-robot text-cyan-400"></i> Gemini Data Assistant
                 </h2>
 
                 <div id="chatBox" class="flex-1 overflow-y-auto space-y-4 mb-4 p-4 bg-slate-900/80 rounded-lg border border-slate-700/40">
@@ -180,7 +180,7 @@ HTML_TEMPLATE = """
 
             const data = await res.json();
             if (data.success) {
-                appendMessage('LangChain', data.response, 'text-cyan-400');
+                appendMessage('Gemini', data.response, 'text-cyan-400');
             } else {
                 appendMessage('Error', data.error, 'text-red-400');
             }
@@ -246,16 +246,22 @@ def ask_langchain():
 
     data = request.get_json()
     query = data.get('query')
-    api_key = data.get('api_key') or os.getenv('OPENAI_API_KEY')
+    api_key = data.get('api_key') or os.getenv('GOOGLE_API_KEY')
 
     if not query:
         return jsonify({'error': 'Query string is required.'}), 400
 
     if not api_key:
-        return jsonify({'error': 'OpenAI API Key is required.'}), 400
+        return jsonify({'error': 'Gemini API Key is required. Please set GOOGLE_API_KEY in Render environment variables or paste it in the UI.'}), 400
 
     try:
-        llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=api_key)
+        # Initialize Gemini LLM
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=api_key,
+            temperature=0
+        )
+        
         agent = create_pandas_dataframe_agent(
             llm,
             CURRENT_DF,
