@@ -6,3 +6,4 @@ streamlit
 langchain
 langchain-google-genai
 python-dotenv
+gunicorn app:app
