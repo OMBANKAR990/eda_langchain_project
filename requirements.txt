@@ -5,5 +5,5 @@ openpyxl
 langchain
 langchain-community
 langchain-experimental
-langchain-openai
+langchain-google-genai
 tabulate
